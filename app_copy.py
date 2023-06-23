@@ -43,13 +43,14 @@ detector = hub.load(model_path).signatures['default']
 def detection_loop(images):
    
     #initialize global detections
-    det = {"entities" : [], "scores" : [], "boxes" : []}
+    det = {"status" : 200, "inf_time" : [], "avg_inf_time" : 0,"uploaod_time" : [], "avg_upload_time" : 0, "entities" : [], "scores" : [], "bounding_boxes" : []}
 
     #maximum detection per picture
     max_length = 10
 
-    #inference times
+    #times
     inf_times = []
+    upload_times = []
 
     for i in images:
         #convert image to tensor
@@ -74,7 +75,15 @@ def detection_loop(images):
         #add results to global detections
         det["entities"].extend(aux_ent)
         det["scores"].extend(result["detection_scores"][:max_length].tolist())
-        det["boxes"].extend(result["detection_boxes"][:max_length].tolist())
+        det["bounding_boxes"].extend(result["detection_boxes"][:max_length].tolist())
+    
+    det["inf_time"].extend(inf_times)
+    det["avg_inf_time"] = np.mean(inf_times)
+    det["upload_time"].extend(upload_times)
+    det["avg_upload_time"] = np.mean(upload_times)
+
+    return make_response(jsonify(det),200)
+
 
     """
     data = {
