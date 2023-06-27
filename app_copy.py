@@ -119,8 +119,10 @@ def draw_boxes(image, boxes, class_names, scores, max_boxes=10, min_score=0.1):
 #to encode the resulting back to base64
 
 def encode_image(image):
+    image_uint8 = image.astype('uint8')
+    image_pil = Image.fromarray(image_uint8)
     img_byte_arr = io.BytesIO()
-    Image.fromarray(image).save(img_byte_arr, format='PNG')
+    image_pil.save(img_byte_arr, format='PNG')
     img_byte_arr = img_byte_arr.getvalue()
     img_base64 = base64.b64encode(img_byte_arr).decode('utf-8')
     return img_base64
@@ -159,24 +161,29 @@ def detection_loop(images, upload_time):
       #create intermediary dictionary from result
       result = {key:value.numpy() for key,value in result.items()}
 
-      entities = shorten_array(result["detection_class_entities"])
-      scores = shorten_array(result["detection_scores"])
-      boxes = shorten_array(result["detection_boxes"])
+      entities = shorten_array(result["detection_class_entities"]).tolist()
+      scores = shorten_array(result["detection_scores"]).tolist()
+      boxes = shorten_array(result["detection_boxes"]).tolist()
 
-      #draw boxes on image
+      #draw boxes on image and encode to base64
       image_with_boxes = draw_boxes(img, result["detection_boxes"],
                                     result["detection_class_entities"], result["detection_scores"])
+      
+      image_with_boxes = encode_image(image_with_boxes)
+
       
       #filling the result dictionary
       detection_results["detection_class_entities"].append(entities)
       detection_results["detection_scores"].append(scores)
       detection_results["detection_boxes"].append(boxes)
-      detection_results["inference_times"].append(inf_time)
+      detection_results["inference_times"].append(str(inf_time))
       detection_results["image_with_boxes"].append(image_with_boxes)
 
 
-  detection_results["avg_inference_time"] = np.mean(detection_results["inference_times"])
-  detection_results["upload_time"] = upload_time
+  detection_results["avg_inference_time"] = str(np.mean([float(t) for t in detection_results["inference_times"]]))
+  detection_results["upload_time"] = str(upload_time)
+
+  
   return make_response(jsonify(detection_results), 200)
 
 
